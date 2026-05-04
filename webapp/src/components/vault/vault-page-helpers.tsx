@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useMemo } from 'preact/hooks';
 import {
   CreditCard,
   FileKey2,
@@ -10,6 +10,7 @@ import {
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { t } from '@/lib/i18n';
 import type { Cipher, CipherAttachment, CustomFieldType, VaultDraft, VaultDraftField, VaultDraftLoginUri } from '@/lib/types';
+import WebsiteIcon from './WebsiteIcon';
 
 export type TypeFilter = 'login' | 'card' | 'identity' | 'note' | 'ssh';
 export type VaultSortMode = 'edited' | 'created' | 'name';
@@ -27,39 +28,56 @@ interface TypeOption {
   label: string;
 }
 
-export const CREATE_TYPE_OPTIONS: TypeOption[] = [
-  { type: 1, label: t('txt_login') },
-  { type: 3, label: t('txt_card') },
-  { type: 4, label: t('txt_identity') },
-  { type: 2, label: t('txt_note') },
-  { type: 5, label: t('txt_ssh_key') },
-];
+export function getCreateTypeOptions(): TypeOption[] {
+  return [
+    { type: 1, label: t('txt_login') },
+    { type: 3, label: t('txt_card') },
+    { type: 4, label: t('txt_identity') },
+    { type: 2, label: t('txt_note') },
+    { type: 5, label: t('txt_ssh_key') },
+  ];
+}
 
 export const VAULT_SORT_STORAGE_KEY = 'nodewarden.vault.sort.v1';
-export const MOBILE_LAYOUT_QUERY = '(max-width: 900px)';
-export const VAULT_LIST_ROW_HEIGHT = 66;
+export const FOLDER_SORT_STORAGE_KEY = 'nodewarden.folder-sort.v1';
+export const MOBILE_LAYOUT_QUERY = '(max-width: 1180px)';
+export const VAULT_LIST_ROW_HEIGHT = 74;
 export const VAULT_LIST_OVERSCAN = 10;
-export const VAULT_SORT_OPTIONS: Array<{ value: VaultSortMode; label: string }> = [
-  { value: 'edited', label: t('txt_sort_last_edited') },
-  { value: 'created', label: t('txt_sort_created') },
-  { value: 'name', label: t('txt_sort_name') },
-];
+export function getVaultSortOptions(): Array<{ value: VaultSortMode; label: string }> {
+  return [
+    { value: 'edited', label: t('txt_sort_last_edited') },
+    { value: 'created', label: t('txt_sort_created') },
+    { value: 'name', label: t('txt_sort_name') },
+  ];
+}
 
-export const FIELD_TYPE_OPTIONS: Array<{ value: CustomFieldType; label: string }> = [
-  { value: 0, label: t('txt_text') },
-  { value: 1, label: t('txt_hidden') },
-  { value: 2, label: t('txt_boolean') },
-];
+export function getFolderSortOptions(): Array<{ value: VaultSortMode; label: string }> {
+  return [
+    { value: 'edited', label: t('txt_sort_last_edited') },
+    { value: 'created', label: t('txt_sort_created') },
+    { value: 'name', label: t('txt_sort_name') },
+  ];
+}
 
-export const WEBSITE_MATCH_OPTIONS: Array<{ value: number | null; label: string }> = [
-  { value: null, label: t('txt_uri_match_default_base_domain') },
-  { value: 0, label: t('txt_uri_match_base_domain') },
-  { value: 1, label: t('txt_uri_match_host') },
-  { value: 3, label: t('txt_uri_match_exact') },
-  { value: 5, label: t('txt_uri_match_never') },
-  { value: 2, label: t('txt_uri_match_starts_with') },
-  { value: 4, label: t('txt_uri_match_regular_expression') },
-];
+export function getFieldTypeOptions(): Array<{ value: CustomFieldType; label: string }> {
+  return [
+    { value: 0, label: t('txt_text') },
+    { value: 1, label: t('txt_hidden') },
+    { value: 2, label: t('txt_boolean') },
+  ];
+}
+
+export function getWebsiteMatchOptions(): Array<{ value: number | null; label: string }> {
+  return [
+    { value: null, label: t('txt_uri_match_default_base_domain') },
+    { value: 0, label: t('txt_uri_match_base_domain') },
+    { value: 1, label: t('txt_uri_match_host') },
+    { value: 3, label: t('txt_uri_match_exact') },
+    { value: 5, label: t('txt_uri_match_never') },
+    { value: 2, label: t('txt_uri_match_starts_with') },
+    { value: 4, label: t('txt_uri_match_regular_expression') },
+  ];
+}
 
 export const TOTP_PERIOD_SECONDS = 30;
 export const TOTP_RING_RADIUS = 14;
@@ -141,36 +159,15 @@ export function toBooleanFieldValue(raw: string): boolean {
   return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
 
-export function firstCipherUri(cipher: Cipher): string {
-  const uris = cipher.login?.uris || [];
-  for (const uri of uris) {
-    const raw = uri.decUri || uri.uri || '';
-    if (raw.trim()) return raw.trim();
-  }
-  return '';
-}
-
-export function hostFromUri(uri: string): string {
-  if (!uri.trim()) return '';
-  try {
-    const normalized = /^https?:\/\//i.test(uri) ? uri : `https://${uri}`;
-    return new URL(normalized).hostname || '';
-  } catch {
-    return '';
-  }
-}
-
-export function websiteIconUrl(host: string): string {
-  return `/icons/${encodeURIComponent(host)}/icon.png`;
-}
+export { firstCipherUri, hostFromUri, websiteIconUrl } from '@/lib/website-utils';
 
 export function createEmptyLoginUri(): VaultDraftLoginUri {
-  return { uri: '', match: null };
+  return { uri: '', match: null, originalUri: '', extra: {} };
 }
 
 export function websiteMatchLabel(value: number | null | undefined): string {
   const normalized = typeof value === 'number' && Number.isFinite(value) ? value : null;
-  return WEBSITE_MATCH_OPTIONS.find((option) => option.value === normalized)?.label || t('txt_uri_match_default_base_domain');
+  return getWebsiteMatchOptions().find((option) => option.value === normalized)?.label || t('txt_uri_match_default_base_domain');
 }
 
 function valueOrFallback(value: string | null | undefined): string {
@@ -313,6 +310,10 @@ export function draftFromCipher(cipher: Cipher): VaultDraft {
     draft.loginUris = (cipher.login.uris || []).map((x) => ({
       uri: x.decUri || x.uri || '',
       match: x.match ?? null,
+      originalUri: x.decUri || x.uri || '',
+      extra: Object.fromEntries(
+        Object.entries(x as Record<string, unknown>).filter(([key]) => !['uri', 'match', 'decUri'].includes(key))
+      ),
     }));
     draft.loginFido2Credentials = Array.isArray(cipher.login.fido2Credentials)
       ? cipher.login.fido2Credentials.map((credential) => ({ ...credential }))
@@ -423,32 +424,8 @@ export function firstPasskeyCreationTime(cipher: Cipher | null): string | null {
   return null;
 }
 
-const failedIconHosts = new Set<string>();
-
 export function VaultListIcon({ cipher }: { cipher: Cipher }) {
-  const uri = firstCipherUri(cipher);
-  const host = hostFromUri(uri);
-  const [errored, setErrored] = useState(() => (host ? failedIconHosts.has(host) : false));
-  if (host && !errored) {
-    return (
-      <img
-        className="list-icon"
-        src={websiteIconUrl(host)}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => {
-          failedIconHosts.add(host);
-          setErrored(true);
-        }}
-      />
-    );
-  }
-  return (
-    <span className="list-icon-fallback">
-      <TypeIcon type={Number(cipher.type || 1)} />
-    </span>
-  );
+  return <WebsiteIcon cipher={cipher} fallback={<TypeIcon type={Number(cipher.type || 1)} />} />;
 }
 
 export function copyToClipboard(value: string): void {
